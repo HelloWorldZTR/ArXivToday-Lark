@@ -14,7 +14,7 @@
 
 **ArXivToday-Lark** 是一个轻量级工具，可以自动从 [arXiv](https://arxiv.org) 获取最新论文，并通过自定义机器人直接推送到您的 [飞书](https://www.feishu.cn) 群聊中。该项目专为科研爱好者和学术专业人士设计，通过可定制的功能、无缝的集成以及可扩展的特性，简化了每日论文的获取过程。
 
-其主要特点包括自动化调度、支持基于 LLM 的论文筛选、摘要翻译以及影响力预测（开发中）。无论您是在探索前沿研究，还是为团队整理论文，**ArXivToday-Lark** 都能帮助您高效、轻松地保持更新。
+其主要特点包括自动化调度、LLM 相关性筛选、结构化论文质量评分，以及可折叠的全文精读卡片。所有新发现的 related 论文都会进入日报，质量较高的论文还会收到单独的精读卡片。
 
 ## Demo
 
@@ -22,15 +22,16 @@
 
 ![Demo-Dark](images/demo-dark.png)
 
-## To Do
+## 工作流程
 
-- [ ] 使用LLM进行更准确的论文筛选
+1. 首次运行只建立日期基线，不发送启动前已有论文。
+2. 后续抓取基线日期之后发布且尚未记录在 `seen_papers.json` 中的论文。
+3. related 模型只根据标题和摘要判断相关性。
+4. 所有 related 论文进入主卡表格。
+5. 从创新性、技术深度、实验可信度、潜在影响和作者信号五个维度评分。
+6. 对评分最高且达到阈值的论文下载 PDF，每次最多生成五张独立的可折叠精读卡。
 
-- [x] 使用LLM翻译摘要
-
-- [ ] LLM 预测论文影响力
-
-  > Zhao P, Xing Q, Dou K, et al. From Words to Worth: Newborn Article Impact Prediction with LLM[J]. arXiv preprint arXiv:2408.03934, 2024.
+增强流程不维护重试队列。PDF 失败会自动降级为摘要精读；related 输出异常则记录错误并当作 unrelated。
 
 ## 使用方法
 
@@ -64,25 +65,30 @@
 
 参考 [这里](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) 的文档操作步骤，在飞书中添加群聊机器人。
 
-#### 设置飞书消息卡片模板
+#### 飞书卡片
 
-参考 [这里](https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/quick-start/send-message-cards-with-custom-bot) 的文档操作步骤，在飞书中设置消息卡片模板。
-
-这里我提供了 [Demo](#Demo) 中用到的消息卡片模板，可以在飞书中直接导入 `ArXivToday.card` 并使用。
+日报使用已发布的 `ArXivToday.card` 模板，精读消息使用 raw Card JSON 2.0 实现折叠内容。请先在 CardKit 中导入并发布模板，再配置模板 ID 和版本。
 
 #### 配置脚本参数
 
 在 `config.yaml` 中按分组修改配置：
 
-1. `lark`：飞书机器人 Webhook URL、消息卡片模板 ID 和版本号。
-2. `paper`：arXiv 分类、关键词、历史记录文件和筛选条件文件。
+1. `lark`：飞书机器人 Webhook URL、日报模板 ID/版本和分批大小。
+2. `paper`：arXiv 分类、已见论文状态、旧历史记录和相关性筛选条件文件。
 3. `llm`：模型配置（支持 Ollama 以及其他与 OpenAI SDK 兼容的服务）。
     - `model`
     - `base_url`: 若使用 Ollama，则该项为 `OLLAMA_HOST` URL 后面拼接 '/v1'
     - `api_key`: 若使用 Ollama，则该项可设置为任意非空字符串（Ollama 不进行鉴权）
-4. `features`：控制是否启用 LLM 筛选和摘要翻译。
+    - `related_model`、`quality_model`、`reading_model`：可选的分阶段模型覆盖
+4. `quality`：重要论文阈值和每次运行最多生成的精读卡数量。
+5. `reading`：PDF 下载超时和全文分块大小。
 
 按照你的实际情况进行修改。
+
+部署时可以通过 `ARXIVTODAY_WEBHOOK_URL`、`ARXIVTODAY_LLM_API_KEY`、
+`ARXIVTODAY_LLM_BASE_URL` 和可选的 `ARXIVTODAY_LLM_MODEL` 环境变量覆盖配置，
+也可分别设置 `ARXIVTODAY_RELATED_MODEL`、`ARXIVTODAY_QUALITY_MODEL` 和
+`ARXIVTODAY_READING_MODEL`，避免将凭据写入 YAML。
 
 #### 运行脚本
 
@@ -149,7 +155,7 @@ python main.py
 - `arxiv_today/config.py`：类型化配置类和 YAML 加载。
 - `arxiv_today/pipeline.py`：从抓取到推送的完整流程。
 - `arxiv_today/prompts.py`：集中管理 LLM prompt 模板。
-- `arxiv_today/papers.py`、`llm.py` 和 `lark.py`：各自独立的领域服务。
+- `arxiv_today/papers.py`、`llm.py`、`reading.py` 和 `lark.py`：各自独立的领域服务。
 
 ## 自定义扩展
 

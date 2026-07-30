@@ -4,3 +4,4 @@ pyyaml
 pydantic
 openai
 tqdm
+pypdf

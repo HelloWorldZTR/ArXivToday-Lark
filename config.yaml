@@ -1,10 +1,11 @@
 # Feishu (Lark) delivery
 lark:
   webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/XXXXX"
-  template_id: "XXXXX"
+  template_id: "AAqWNxGgDjV5N"
   template_version_name: "1.0.0"
+  main_card_batch_size: 50
 
-# Paper discovery and local storage
+# Paper discovery and local state
 paper:
   tag: "LLM Security"
   categories:
@@ -13,24 +14,9 @@ paper:
     - cs.CV
     - cs.CR
     - cs.LG
-  keywords:
-    - safety
-    - security
-    - jailbreak
-    - adversarial
-    - moderation
-    - guard
-    - alignment
-    - backdoor
-    - hallucination
-    - privacy
-    - intellectual property
-    - vulnerability
-    - vulnerabilities
-    - poison
-    - victim
   max_results_per_category: 100
   history_file: "papers.json"
+  seen_file: "seen_papers.json"
   criteria_file: "paper_to_hunt.md"
 
 # OpenAI SDK-compatible service (including Ollama)
@@ -38,7 +24,15 @@ llm:
   model: "deepseek-r1:32b"
   base_url: "http://localhost:11434/v1"
   api_key: "ollama"
+  # Optional per-stage overrides; null falls back to `model`.
+  related_model: null
+  quality_model: null
+  reading_model: null
 
-features:
-  llm_filtering: true
-  llm_translation: true
+quality:
+  threshold: 75
+  max_readings_per_run: 5
+
+reading:
+  pdf_timeout_seconds: 30
+  chunk_characters: 12000

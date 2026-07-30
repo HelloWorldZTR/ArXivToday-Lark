@@ -19,23 +19,16 @@
                             "data_type": "number",
                             "name": "index",
                             "display_name": "序号",
-                            "horizontal_align": "right",
+                            "horizontal_align": "center",
                             "width": "auto",
                             "format": {
                                 "precision": 0
                             }
                         },
                         {
-                            "data_type": "text",
-                            "name": "title",
-                            "display_name": "论文标题",
-                            "horizontal_align": "left",
-                            "width": "auto"
-                        },
-                        {
-                            "data_type": "text",
-                            "name": "id",
-                            "display_name": "arXiv ID",
+                            "data_type": "lark_md",
+                            "name": "paper",
+                            "display_name": "论文",
                             "horizontal_align": "left",
                             "width": "auto"
                         },
@@ -43,19 +36,12 @@
                             "data_type": "text",
                             "name": "published",
                             "display_name": "论文日期",
-                            "horizontal_align": "left",
-                            "width": "auto"
-                        },
-                        {
-                            "data_type": "lark_md",
-                            "name": "url",
-                            "display_name": "链接",
-                            "horizontal_align": "left",
+                            "horizontal_align": "center",
                             "width": "auto"
                         }
                     ],
                     "rows": "${table_rows}",
-                    "row_height": "low",
+                    "row_height": "middle",
                     "header_style": {
                         "background_style": "grey",
                         "bold": true,
@@ -69,7 +55,7 @@
                     "elements": [
                         {
                             "tag": "markdown",
-                            "content": "${paper_list.counter}. ${paper_list.title}",
+                            "content": "${paper_list.counter}. Quality: ${paper_list.quality_score}",
                             "text_align": "left",
                             "text_size": "heading",
                             "icon": {
@@ -80,19 +66,7 @@
                         },
                         {
                             "tag": "markdown",
-                            "content": "- <text_tag color='yellow'>${paper_list.published}</text_tag>\n- <text_tag color='green'>arXiv ID: ${paper_list.id}</text_tag>\n- <link icon='file-link-pdf_outlined' url='${paper_list.url}'>论文链接 ${paper_list.url}</link>",
-                            "text_align": "left",
-                            "text_size": "notation"
-                        },
-                        {
-                            "tag": "markdown",
-                            "content": "**摘要**\n${paper_list.abstract}",
-                            "text_align": "left",
-                            "text_size": "normal"
-                        },
-                        {
-                            "tag": "markdown",
-                            "content": "${paper_list.zh_abstract}",
+                            "content": "${paper_list.evaluation}",
                             "text_align": "left",
                             "text_size": "normal"
                         },
@@ -154,52 +128,13 @@
             "mockData": [
                 {
                     "index": 1,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
+                    "paper": "**[Paper Title](http://arxiv.org/abs/2411.11451v1)**\n<text_tag color='grey'>arXiv: 2411.11451</text_tag>",
+                    "published": "2024-11-02"
                 },
                 {
                     "index": 2,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
-                },
-                {
-                    "index": 3,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
-                },
-                {
-                    "index": 4,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
-                },
-                {
-                    "index": 5,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
-                },
-                {
-                    "index": 6,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
-                },
-                {
-                    "index": 7,
-                    "title": "Paper Title",
-                    "id": "2411.11451",
-                    "published": "2024-11-02",
-                    "url": "[http://arxiv.org/abs/2411.11451v1](http://arxiv.org/abs/2411.11451v1)"
+                    "paper": "**[Another Paper](http://arxiv.org/abs/2411.10000v1)**\n<text_tag color='grey'>arXiv: 2411.10000</text_tag>",
+                    "published": "2024-11-02"
                 }
             ]
         },
@@ -211,30 +146,18 @@
             "mockData": [
                 {
                     "counter": 1,
-                    "title": "This is the Paper Title",
-                    "id": "2411.11451",
-                    "abstract": "This is the Abstract of the paper. This is the Abstract of the paper. This is the Abstract of the paper. This is the Abstract of the paper. This is the Abstract of the paper.",
-                    "url": "http://arxiv.org/abs/2411.11451v1",
-                    "published": "2024-11-02",
-                    "zh_abstract": "这是这篇文章的摘要。这是这篇文章的摘要。这是这篇文章的摘要。这是这篇文章的摘要。这是这篇文章的摘要。"
+                    "quality_score": "86",
+                    "evaluation": "该论文提出了具有较高潜在影响的新方法。"
                 },
                 {
                     "counter": 2,
-                    "title": "",
-                    "id": "",
-                    "abstract": "",
-                    "url": "",
-                    "published": "",
-                    "zh_abstract": ""
+                    "quality_score": "评估失败",
+                    "evaluation": "质量评估失败，仅作为 related 论文展示。"
                 },
                 {
                     "counter": 3,
-                    "title": "",
-                    "id": "",
-                    "abstract": "",
-                    "url": "",
-                    "published": "",
-                    "zh_abstract": ""
+                    "quality_score": "",
+                    "evaluation": ""
                 }
             ],
             "structDescriptions": [
@@ -246,39 +169,15 @@
                 },
                 {
                     "type": "text",
-                    "name": "title",
-                    "desc": "论文标题",
+                    "name": "quality_score",
+                    "desc": "论文质量分数",
                     "apiName": "var_7scnb2qnnj2"
                 },
                 {
                     "type": "text",
-                    "name": "id",
-                    "desc": "论文 arXiv ID",
+                    "name": "evaluation",
+                    "desc": "一句话评价",
                     "apiName": "var_uol2sndj1ea"
-                },
-                {
-                    "type": "text",
-                    "name": "abstract",
-                    "desc": "论文摘要",
-                    "apiName": "var_6ngeta033uu"
-                },
-                {
-                    "type": "text",
-                    "name": "url",
-                    "desc": "论文链接",
-                    "apiName": "var_ddz675b4m2e"
-                },
-                {
-                    "type": "text",
-                    "name": "published",
-                    "desc": "论文日期",
-                    "apiName": "var_vsmjbsnms6d"
-                },
-                {
-                    "type": "text",
-                    "name": "zh_abstract",
-                    "desc": "论文中文摘要",
-                    "apiName": "var_9kxh9165bq"
                 }
             ]
         },
