@@ -1,84 +1,44 @@
-# Configuration
+# Feishu (Lark) delivery
+lark:
+  webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/XXXXX"
+  template_id: "XXXXX"
+  template_version_name: "1.0.0"
 
-# ==================================== Feishu(Lark) Configuration ==================================== #
-# ------------------------------------------------------------------------------------------------------------ #
-# Feishu(Lark) Bot Webhook URL
-webhook_url: 'https://open.feishu.cn/open-apis/bot/v2/hook/XXXXX'  # TODO: Change to your Webhook URL
+# Paper discovery and local storage
+paper:
+  tag: "LLM Security"
+  categories:
+    - cs.CL
+    - cs.AI
+    - cs.CV
+    - cs.CR
+    - cs.LG
+  keywords:
+    - safety
+    - security
+    - jailbreak
+    - adversarial
+    - moderation
+    - guard
+    - alignment
+    - backdoor
+    - hallucination
+    - privacy
+    - intellectual property
+    - vulnerability
+    - vulnerabilities
+    - poison
+    - victim
+  max_results_per_category: 100
+  history_file: "papers.json"
+  criteria_file: "paper_to_hunt.md"
 
-# Feishu(Lark) Card Template
-template_id: 'XXXXX'  # TODO: Change to your template_id
-template_version_name: '1.0.0'  # TODO: Change to your template_version_name
-# ------------------------------------------------------------------------------------------------------------ #
+# OpenAI SDK-compatible service (including Ollama)
+llm:
+  model: "deepseek-r1:32b"
+  base_url: "http://localhost:11434/v1"
+  api_key: "ollama"
 
-
-# ==================================== Paper Configuration ==================================== #
-# ------------------------------------------------------------------------------------------------------------ #
-tag: 'LLM Security'  # Tag for Feishu(Lark) Card
-
-category_list:  # arXiv categories to search for papers
-  - cs.CL  # Computation and Language
-  - cs.AI  # Artificial Intelligence
-  - cs.CV  # Computer Vision and Pattern Recognition
-  - cs.CR  # Cryptography and Security
-  - cs.LG  # Machine Learning
-
-keyword_list:  # Keywords to filter papers
-  - safety
-  - security
-  - jailbreak
-  - adversarial
-  - moderation
-  - guard
-  - alignment
-  - backdoor
-  - hallucination
-  - privacy
-  - intellectual property
-  - vulnerability
-  - vulnerabilities
-  - poison
-  - victim
-# ------------------------------------------------------------------------------------------------------------ #
-
-
-# ==================================== LLM Service Configuration ==================================== #
-# ------------------------------------------------------------------------------------------------------------ #
-
-# LLM Server Config
-model: 'deepseek-r1:32b'
-base_url: 'http://localhost:11434/v1'  # NOTE: For ollama, need to add '/v1' at the end of the OLLAMA_HOST URL
-api_key: 'ollama'
-
-#### >>> LLM Server Config EXAMPLE >>> ####
-
-## 1. For Ollama Server ##
-# model: 'qwen2.5:7b'
-# base_url: 'http://localhost:11434/v1'  # NOTE: For ollama, need to add '/v1' at the end of the OLLAMA_HOST URL
-# api_key: 'ollama'  # Any non-empty string works (Ollama does not require authentication)
-
-## 2. For Other OpenAI SDK-Compatibale LLM Server ##
-# model: 'gpt-4o-mini'
-# base_url: 'https://api.openai.com/v1'
-# api_key: 'sk-xxxxx'
-
-#### <<< LLM Server Config EXAMPLE <<< ####
-
-# ------------------------------------------------------------------------------------------------------------ #
-
-# Use LLM for More Accurate Paper Filtering
-use_llm_for_filtering: true  # Set to false to disable LLM-based filtering
-
-#### >>> LLM-Based Paper Filtering >>> ####
-# If set to true, `paper_to_hunt.md` file in the project root directory will be used for LLM-based filtering.
-# You can modify the prompt in `paper_to_hunt.md` to describe the paper you want to hunt for.
-#
-# If you want to use LLM-Based Filtering **only** (without Keyword Filtering), set `keyword_list` to an empty list like below:
-# keyword_list: []
-#### <<< LLM-Based Paper Filtering <<< ####
-
-# ------------------------------------------------------------------------------------------------------------ #
-
-# Use LLM for Paper Abstract Translation
-use_llm_for_translation: true  # Set to false to disable LLM-based translation
-
-# ------------------------------------------------------------------------------------------------------------ #
+features:
+  llm_filtering: true
+  llm_translation: true

@@ -72,14 +72,15 @@
 
 #### 配置脚本参数
 
-在 `config.yaml` 中，将在前面的步骤中操作后得到的：
+在 `config.yaml` 中按分组修改配置：
 
-1. 飞书机器人 Webhook URL
-2. 飞书消息卡片模板的 ID 与 版本号
-3. LLM 模型的相关配置（支持 Ollama 以及其他与 OpenAI SDK 兼容的模型调用）
+1. `lark`：飞书机器人 Webhook URL、消息卡片模板 ID 和版本号。
+2. `paper`：arXiv 分类、关键词、历史记录文件和筛选条件文件。
+3. `llm`：模型配置（支持 Ollama 以及其他与 OpenAI SDK 兼容的服务）。
     - `model`
     - `base_url`: 若使用 Ollama，则该项为 `OLLAMA_HOST` URL 后面拼接 '/v1'
     - `api_key`: 若使用 Ollama，则该项可设置为任意非空字符串（Ollama 不进行鉴权）
+4. `features`：控制是否启用 LLM 筛选和摘要翻译。
 
 按照你的实际情况进行修改。
 
@@ -129,18 +130,26 @@ python main.py
    pip install schedule
    ```
 
-2. 将 `main.py` 中的如下注释部分取消注释，并按照实际需求进行修改
+2. 新建一个轻量调度脚本，调用公开的 `task` 入口：
 
     ```python
-    ### Uncomment the following code to use `schedule` to run the task periodically ###
     import time
     import schedule
-    # Schedule the task to run every day at 10:17
-    schedule.every().day.at("10:17").do(task)  # TODO: Change the time for your own need
+    from main import task
+
+    schedule.every().day.at("10:17").do(task)
     while True:
         schedule.run_pending()
         time.sleep(1)
     ```
+
+## 项目结构
+
+- `main.py`：精简的命令行入口。
+- `arxiv_today/config.py`：类型化配置类和 YAML 加载。
+- `arxiv_today/pipeline.py`：从抓取到推送的完整流程。
+- `arxiv_today/prompts.py`：集中管理 LLM prompt 模板。
+- `arxiv_today/papers.py`、`llm.py` 和 `lark.py`：各自独立的领域服务。
 
 ## 自定义扩展
 

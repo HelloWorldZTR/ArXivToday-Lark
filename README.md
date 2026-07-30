@@ -72,14 +72,15 @@ The message card template used in the [Demo](#Demo) can be directly imported fro
 
 #### Configure Script Parameters
 
-In `config.yaml`, modify the following parameters based on the results of the previous steps:
+In `config.yaml`, modify the grouped parameters based on the results of the previous steps:
 
-1. Webhook URL of the Lark bot.
-2. ID and version number of the Lark message card template.
-3. Configuration for LLM Models (Support Ollama and other OpenAI SDK-compatible models)
+1. `lark`: webhook URL, card template ID, and template version.
+2. `paper`: arXiv categories, keywords, local history, and filtering criteria file.
+3. `llm`: model configuration (supports Ollama and other OpenAI SDK-compatible services).
     - `model`
     - `base_url`: When using Ollama, set this to the `OLLAMA_HOST` URL followed by '/v1'
     - `api_key`: When using Ollama, this can be set to any non-empty string (Ollama does not require authentication)
+4. `features`: enable or disable LLM filtering and abstract translation.
 
 Adjust these settings according to your specific setup.
 
@@ -129,18 +130,26 @@ For example, to fetch arXiv papers and push them via the Lark bot at 12:24 PM ev
    pip install schedule
    ```
 
-2. Uncomment the following section in `main.py` and modify it as needed:
+2. Create a small scheduler script and call the public `task` entry point:
 
     ```python
-    ### Uncomment the following code to use `schedule` to run the task periodically ###
     import time
     import schedule
-    # Schedule the task to run every day at 10:17
-    schedule.every().day.at("10:17").do(task)  # TODO: Change the time for your own need
+    from main import task
+
+    schedule.every().day.at("10:17").do(task)
     while True:
         schedule.run_pending()
         time.sleep(1)
     ```
+
+## Project Structure
+
+- `main.py`: minimal command-line entry point.
+- `arxiv_today/config.py`: typed configuration classes and YAML loading.
+- `arxiv_today/pipeline.py`: complete fetch-to-delivery workflow.
+- `arxiv_today/prompts.py`: centralized LLM prompt templates.
+- `arxiv_today/papers.py`, `llm.py`, and `lark.py`: focused domain services.
 
 ## Extension
 

@@ -162,3 +162,4 @@ cython_debug/
 .idea/
 
 papers.json
+.ruff_cache/

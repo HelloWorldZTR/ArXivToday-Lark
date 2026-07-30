@@ -1,5 +1,6 @@
 requests
 arxiv
 pyyaml
+pydantic
 openai
 tqdm
