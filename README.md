@@ -12,9 +12,9 @@
 
 > ArXiv Today: Get arXiv daily papers right in your Lark (飞书) via bot.
 
-**ArXivToday-Lark** is a lightweight tool that automates the process of fetching the latest papers from [arXiv](https://arxiv.org) and delivers them directly to your [Lark](https://www.feishu.cn) group chats using a custom bot. Designed for research enthusiasts and academic professionals, this project simplifies daily paper discovery with customizable features, seamless integration, and extendable functionality.
+**ArXivToday-Lark** fetches the latest papers from [arXiv](https://arxiv.org) and delivers them to a [Lark](https://www.feishu.cn) group through an app bot.
 
-Key highlights include automated scheduling, LLM relevance filtering, structured paper quality scoring, and collapsible full-paper reading cards. Every new related paper appears in the digest, while the highest-quality papers receive a separate in-depth reading card.
+It uses a pure-LLM two-stage filter: batched semantic classification preserves open-world recall, while comparative selection recommends at most five papers. PDFs are only read after a user sends `/精读 <arXiv ID>`.
 
 ## Demo
 
@@ -26,12 +26,13 @@ Key highlights include automated scheduling, LLM relevance filtering, structured
 
 1. On the first run, initialize a date baseline without sending existing papers.
 2. On later runs, fetch unseen papers published after that baseline.
-3. Let the relatedness model inspect each title and abstract.
-4. Show every related paper in the digest card.
-5. Score related papers for novelty, technical depth, experimental credibility, potential impact, and author signal.
-6. Download and read the PDF for up to five highest-scoring important papers, then send one collapsible reading card per paper.
+3. Classify batches of ten as `related`, `possible`, or `unrelated`, without embeddings or hard keyword gates.
+4. Compare `related + possible` papers and recommend at most five; zero is valid.
+5. Put recommendations first and show their titles, authors, and one-sentence summaries below the table.
+6. Hide unselected possible papers and exclude unrelated papers.
+7. Generate and cache a reading only after `/精读 2607.27180`.
 
-There is no enrichment retry queue. PDF failures fall back to the abstract, while malformed relatedness results are logged and treated as unrelated.
+Missing batch results are retried once. A second failure aborts the digest without committing seen state. PDF failures produce an explicitly labeled abstract fallback.
 
 ## Usage
 
@@ -59,47 +60,52 @@ There is no enrichment retry queue. PDF failures fall back to the abstract, whil
 
 ### Deployment
 
-In [Lark](https://www.feishu.cn), add a **[Custom Bot](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)** to a group chat. Deploy and run this project to fetch the latest relevant papers from arXiv daily and push them to the group via the bot.
+Create an internal app in the [Lark Developer Console](https://open.feishu.cn/), enable its bot, and use that app for both digests and `/精读`.
 
-#### Add a Lark Custom Bot
+#### Configure the Lark App Bot
 
-Follow the steps in [this guide](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) to add a custom bot to your group chat in Lark.
+1. Grant the permissions needed to send bot messages and receive group messages.
+2. Select long connection for event delivery and subscribe to `im.message.receive_v1`.
+3. Publish the app and add its bot to the target group.
+4. Obtain the group's `chat_id` from a message event or the developer-console event log.
 
 #### Lark Cards
 
-The digest uses the published `ArXivToday.card` template, while reading messages use raw Card JSON 2.0 for collapsible content. Import and publish the template in CardKit, then configure its template ID and version.
+The digest uses `ArXivToday.card`; readings use raw Card JSON 2.0. Re-import and publish the current template in CardKit, then configure its template ID and new version.
 
 #### Configure Script Parameters
 
 In `config.yaml`, modify the grouped parameters based on the results of the previous steps:
 
-1. `lark`: webhook URL, digest template ID/version, and batch size.
+1. `lark`: app ID/secret, target chat ID, digest template ID/version, and batch size.
 2. `paper`: arXiv categories, seen-paper state, legacy history, and the relatedness criteria file.
-3. `llm`: model configuration (supports Ollama and other OpenAI SDK-compatible services).
-    - `model`
-    - `base_url`: When using Ollama, set this to the `OLLAMA_HOST` URL followed by '/v1'
-    - `api_key`: When using Ollama, this can be set to any non-empty string (Ollama does not require authentication)
-    - `related_model`, `quality_model`, `reading_model`: optional per-stage overrides
-4. `quality`: important-paper threshold and maximum reading cards per run.
-5. `reading`: PDF timeout and full-text chunk size.
+3. `llm`: a publicly reachable OpenAI SDK-compatible endpoint, stage models, and output limits.
+4. `recommendation`: relevance batch size, comparative-selection batch size, and recommendation cap.
+5. `reading`: PDF timeout, full-text chunk size, and cache directory.
 
 Adjust these settings according to your specific setup.
 
-For deployments, secrets can remain outside YAML by setting
-`ARXIVTODAY_WEBHOOK_URL`, `ARXIVTODAY_LLM_API_KEY`,
-`ARXIVTODAY_LLM_BASE_URL`, and optionally `ARXIVTODAY_LLM_MODEL`,
-`ARXIVTODAY_RELATED_MODEL`, `ARXIVTODAY_QUALITY_MODEL`, and
-`ARXIVTODAY_READING_MODEL`.
+Keep secrets outside YAML with `ARXIVTODAY_LARK_APP_ID`,
+`ARXIVTODAY_LARK_APP_SECRET`, `ARXIVTODAY_LARK_CHAT_ID`,
+`ARXIVTODAY_LLM_API_KEY`, and `ARXIVTODAY_LLM_BASE_URL`. Stage models can
+be set with `ARXIVTODAY_LLM_MODEL`, `ARXIVTODAY_RELATED_MODEL`,
+`ARXIVTODAY_RECOMMENDATION_MODEL`, and `ARXIVTODAY_READING_MODEL`.
 
 #### Run the Script
 
-Run the script using Python:
+Run one digest:
 
 ```sh
-python main.py
+python main.py digest
 ```
 
-To run the script periodically, you can use the `crontab` command in Linux or the `schedule` library.
+Run the long-lived command bot:
+
+```sh
+python main.py bot
+```
+
+`python main.py` remains an alias for `digest`. Keep `bot` alive with a process manager and schedule `digest` with cron or a timer.
 
 ##### Run Periodically with crontab
 
@@ -116,7 +122,7 @@ For example, to fetch arXiv papers and push them via the Lark bot at 12:24 PM ev
 2. Add the following line and save it:
 
    ```sh
-   24 12 * * 1-5 /absolute/path/to/your/python/interpreter /absolute/path/to/ArXivToday-Lark/main.py
+   24 12 * * 1-5 /absolute/path/to/python /absolute/path/to/ArXivToday-Lark/main.py digest
    ```
 
 > [!NOTE]
@@ -155,6 +161,7 @@ For example, to fetch arXiv papers and push them via the Lark bot at 12:24 PM ev
 - `main.py`: minimal command-line entry point.
 - `arxiv_today/config.py`: typed configuration classes and YAML loading.
 - `arxiv_today/pipeline.py`: complete fetch-to-delivery workflow.
+- `arxiv_today/bot.py`: long connection, on-demand readings, cache, and single worker.
 - `arxiv_today/prompts.py`: centralized LLM prompt templates.
 - `arxiv_today/papers.py`, `llm.py`, `reading.py`, and `lark.py`: focused domain services.
 

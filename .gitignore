@@ -163,4 +163,5 @@ cython_debug/
 
 papers.json
 seen_papers.json
+reading_cache/
 .ruff_cache/

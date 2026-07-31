@@ -12,9 +12,9 @@
 
 > ArXiv Today：通过飞书（Lark）机器人，每日获取 arXiv 上的最新论文。
 
-**ArXivToday-Lark** 是一个轻量级工具，可以自动从 [arXiv](https://arxiv.org) 获取最新论文，并通过自定义机器人直接推送到您的 [飞书](https://www.feishu.cn) 群聊中。该项目专为科研爱好者和学术专业人士设计，通过可定制的功能、无缝的集成以及可扩展的特性，简化了每日论文的获取过程。
+**ArXivToday-Lark** 是一个轻量级工具，可以自动从 [arXiv](https://arxiv.org) 获取最新论文，并通过飞书应用机器人推送到群聊中。
 
-其主要特点包括自动化调度、LLM 相关性筛选、结构化论文质量评分，以及可折叠的全文精读卡片。所有新发现的 related 论文都会进入日报，质量较高的论文还会收到单独的精读卡片。
+项目使用纯 LLM 两层筛选：批量相关性判断保持开放世界召回，二次横向比较只推荐最多五篇论文。日报不自动读取 PDF；用户发送 `/精读 <arXiv ID>` 后才生成并回复全文精读卡片。
 
 ## Demo
 
@@ -26,12 +26,13 @@
 
 1. 首次运行只建立日期基线，不发送启动前已有论文。
 2. 后续抓取基线日期之后发布且尚未记录在 `seen_papers.json` 中的论文。
-3. related 模型只根据标题和摘要判断相关性。
-4. 所有 related 论文进入主卡表格。
-5. 从创新性、技术深度、实验可信度、潜在影响和作者信号五个维度评分。
-6. 对评分最高且达到阈值的论文下载 PDF，每次最多生成五张独立的可折叠精读卡。
+3. 每批十篇进行 `related / possible / unrelated` 语义判断，不使用 embedding 或关键词硬过滤。
+4. 将 `related + possible` 交给第二轮 LLM 横向比较，最多推荐五篇，也允许零篇。
+5. 推荐论文排在表格前部，下方显示标题、作者和一句话摘要；其他 related 论文仍保留在表格中。
+6. 未入选的 possible 论文不展示，unrelated 论文直接排除。
+7. 日报不下载 PDF；只有群内 `/精读 2607.27180` 命令会触发精读并缓存结果。
 
-增强流程不维护重试队列。PDF 失败会自动降级为摘要精读；related 输出异常则记录错误并当作 unrelated。
+批量相关性响应缺失时只重试缺失论文；再次失败会中止本次日报且不提交已见状态。PDF 获取失败时，按需精读会明确标记为摘要降级版。
 
 ## 使用方法
 
@@ -59,46 +60,52 @@
 
 ### 部署
 
-在 [飞书](https://www.feishu.cn) 中，将 **[自定义机器人](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot)** 添加到群聊，部署并运行本项目，即可通过机器人每日自动获取 arXiv 最新相关论文并推送到群聊。
+在 [飞书开放平台](https://open.feishu.cn/) 创建企业自建应用并启用机器人。日报发送和 `/精读` 命令都使用同一个应用机器人。
 
-#### 添加飞书自定义机器人
+#### 配置飞书应用机器人
 
-参考 [这里](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) 的文档操作步骤，在飞书中添加群聊机器人。
+1. 为应用开通机器人发送消息以及接收群聊消息所需权限。
+2. 在事件订阅中选择长连接，并订阅 `im.message.receive_v1`。
+3. 发布应用并将机器人加入目标群。
+4. 从飞书事件日志或消息事件中取得目标群 `chat_id`。
 
 #### 飞书卡片
 
-日报使用已发布的 `ArXivToday.card` 模板，精读消息使用 raw Card JSON 2.0 实现折叠内容。请先在 CardKit 中导入并发布模板，再配置模板 ID 和版本。
+日报使用 `ArXivToday.card` 模板，精读使用 raw Card JSON 2.0。请在 CardKit 中重新导入并发布当前模板，然后配置模板 ID 和新版本。
 
 #### 配置脚本参数
 
 在 `config.yaml` 中按分组修改配置：
 
-1. `lark`：飞书机器人 Webhook URL、日报模板 ID/版本和分批大小。
+1. `lark`：飞书应用 App ID/App Secret、目标群 chat ID、日报模板 ID/版本和分批大小。
 2. `paper`：arXiv 分类、已见论文状态、旧历史记录和相关性筛选条件文件。
-3. `llm`：模型配置（支持 Ollama 以及其他与 OpenAI SDK 兼容的服务）。
-    - `model`
-    - `base_url`: 若使用 Ollama，则该项为 `OLLAMA_HOST` URL 后面拼接 '/v1'
-    - `api_key`: 若使用 Ollama，则该项可设置为任意非空字符串（Ollama 不进行鉴权）
-    - `related_model`、`quality_model`、`reading_model`：可选的分阶段模型覆盖
-4. `quality`：重要论文阈值和每次运行最多生成的精读卡数量。
-5. `reading`：PDF 下载超时和全文分块大小。
+3. `llm`：可公网访问的 OpenAI SDK-compatible API、各阶段模型和输出 token 上限。
+4. `recommendation`：一筛批大小、二筛批大小和最多推荐数。
+5. `reading`：PDF 超时、全文分块大小和精读缓存目录。
 
 按照你的实际情况进行修改。
 
-部署时可以通过 `ARXIVTODAY_WEBHOOK_URL`、`ARXIVTODAY_LLM_API_KEY`、
-`ARXIVTODAY_LLM_BASE_URL` 和可选的 `ARXIVTODAY_LLM_MODEL` 环境变量覆盖配置，
-也可分别设置 `ARXIVTODAY_RELATED_MODEL`、`ARXIVTODAY_QUALITY_MODEL` 和
-`ARXIVTODAY_READING_MODEL`，避免将凭据写入 YAML。
+部署时建议使用 `ARXIVTODAY_LARK_APP_ID`、`ARXIVTODAY_LARK_APP_SECRET`、
+`ARXIVTODAY_LARK_CHAT_ID`、`ARXIVTODAY_LLM_API_KEY` 和
+`ARXIVTODAY_LLM_BASE_URL` 环境变量。模型可通过 `ARXIVTODAY_LLM_MODEL`、
+`ARXIVTODAY_RELATED_MODEL`、`ARXIVTODAY_RECOMMENDATION_MODEL` 和
+`ARXIVTODAY_READING_MODEL` 分别覆盖。
 
 #### 运行脚本
 
-使用 Python 运行 `main.py` 即可运行该脚本。
+运行一次日报：
 
 ```sh
-python main.py
+python main.py digest
 ```
 
-但是为了让该脚本周期性地运行，你可以采用 Linux 系统的 `crontab` 命令，也可以使用 `schedule` 库来定期运行任务。
+常驻运行飞书命令机器人：
+
+```sh
+python main.py bot
+```
+
+`python main.py` 仍等价于 `python main.py digest`。生产环境应使用 systemd 等进程管理器保持 `bot` 常驻，并用 cron 或 timer 调度 `digest`。
 
 ##### 使用 crontab 命令周期性运行
 
@@ -115,7 +122,7 @@ python main.py
 2. 添加如下内容并保存
 
     ```sh
-    24 12 * * 1-5 /absolute/path/to/your/python/interpreter /absolute/path/to/ArXivToday-Lark/main.py
+    24 12 * * 1-5 /absolute/path/to/python /absolute/path/to/ArXivToday-Lark/main.py digest
     ```
 
 > [!NOTE]
@@ -154,6 +161,7 @@ python main.py
 - `main.py`：精简的命令行入口。
 - `arxiv_today/config.py`：类型化配置类和 YAML 加载。
 - `arxiv_today/pipeline.py`：从抓取到推送的完整流程。
+- `arxiv_today/bot.py`：飞书长连接、按需精读、缓存与单工作线程。
 - `arxiv_today/prompts.py`：集中管理 LLM prompt 模板。
 - `arxiv_today/papers.py`、`llm.py`、`reading.py` 和 `lark.py`：各自独立的领域服务。
 
@@ -162,7 +170,7 @@ python main.py
 可以在本项目的基础上进行自定义扩展。比如：
 
 - 你可以自行定义消息卡片的样式，或采用其他消息类型。
-- 可以使用飞书的 [应用机器人](https://open.feishu.cn/document/client-docs/bot-v3/bot-overview)（可能需要一些权限等），以实现更复杂的工作流。
+- 可以扩展更多只读命令或卡片交互，但应继续限制允许触发付费 LLM 的群聊。
 
 ## 许可证
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run ArXiv Today digest on weekday mornings
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 10:17:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1min
+Unit=arxiv-today-digest.service
+
+[Install]
+WantedBy=timers.target

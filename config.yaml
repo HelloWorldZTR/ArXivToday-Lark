@@ -1,38 +1,47 @@
-# Feishu (Lark) delivery
+# Feishu (Lark) application bot
 lark:
-  webhook_url: "https://open.feishu.cn/open-apis/bot/v2/hook/XXXXX"
+  app_id: ""
+  app_secret: ""
+  target_chat_id: ""
   template_id: "AAqWNxGgDjV5N"
-  template_version_name: "1.0.0"
+  template_version_name: "1.0.2"
   main_card_batch_size: 50
 
 # Paper discovery and local state
 paper:
-  tag: "LLM Security"
+  tag: "Embodied Intelligence"
   categories:
-    - cs.CL
+    - cs.RO
     - cs.AI
     - cs.CV
-    - cs.CR
     - cs.LG
+    - cs.GR
+    - eess.SY
   max_results_per_category: 100
   history_file: "papers.json"
   seen_file: "seen_papers.json"
   criteria_file: "paper_to_hunt.md"
 
-# OpenAI SDK-compatible service (including Ollama)
+# Public OpenAI SDK-compatible service
 llm:
-  model: "deepseek-r1:32b"
-  base_url: "http://localhost:11434/v1"
-  api_key: "ollama"
+  model: "your-model"
+  base_url: "https://your-openai-compatible-api.example/v1"
+  api_key: ""
   # Optional per-stage overrides; null falls back to `model`.
   related_model: null
-  quality_model: null
+  recommendation_model: null
   reading_model: null
+  related_max_tokens: 800
+  recommendation_max_tokens: 1200
+  reading_chunk_max_tokens: 1500
+  reading_max_tokens: 3000
 
-quality:
-  threshold: 75
-  max_readings_per_run: 5
+recommendation:
+  related_batch_size: 10
+  selection_batch_size: 30
+  max_recommendations: 5
 
 reading:
   pdf_timeout_seconds: 30
   chunk_characters: 12000
+  cache_dir: "reading_cache"

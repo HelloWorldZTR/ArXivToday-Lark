@@ -1,10 +1,52 @@
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import TestCase
+from unittest import TestCase, mock
+
+import arxiv
 
 from arxiv_today.models import Paper
-from arxiv_today.papers import SeenPaperStore
+from arxiv_today.papers import SeenPaperStore, _results_with_backoff
+
+
+class ArxivBackoffTest(TestCase):
+    @mock.patch("arxiv_today.papers.time.sleep")
+    @mock.patch("arxiv_today.papers.arxiv.Client")
+    def test_retries_429_with_exponential_delays(
+        self,
+        client_class: mock.Mock,
+        sleep: mock.Mock,
+    ) -> None:
+        client = client_class.return_value
+        client.results.side_effect = [
+            arxiv.HTTPError("url", 0, 429),
+            arxiv.HTTPError("url", 0, 429),
+            ["paper"],
+        ]
+
+        results = _results_with_backoff(arxiv.Search(id_list=["2607.00001"]))
+
+        self.assertEqual(results, ["paper"])
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [15.0, 30.0])
+        self.assertEqual(client_class.call_args_list, [mock.call(num_retries=0)] * 3)
+
+    @mock.patch("arxiv_today.papers.time.sleep")
+    @mock.patch("arxiv_today.papers.arxiv.Client")
+    def test_does_not_retry_non_transient_http_errors(
+        self,
+        client_class: mock.Mock,
+        sleep: mock.Mock,
+    ) -> None:
+        client_class.return_value.results.side_effect = arxiv.HTTPError(
+            "url",
+            0,
+            400,
+        )
+
+        with self.assertRaises(arxiv.HTTPError):
+            _results_with_backoff(arxiv.Search(id_list=["bad-id"]))
+
+        sleep.assert_not_called()
 
 
 class SeenPaperStoreTest(TestCase):
@@ -36,6 +78,7 @@ class SeenPaperStoreTest(TestCase):
                     "authors": ("A",),
                     "url": "url",
                     "published": "2026-01-01",
+                    "version": "legacy-idv1",
                 },
                 {
                     "id": "new-id",
@@ -44,6 +87,7 @@ class SeenPaperStoreTest(TestCase):
                     "authors": ("B",),
                     "url": "url",
                     "published": "2026-01-02",
+                    "version": "new-idv1",
                 },
             ]
 

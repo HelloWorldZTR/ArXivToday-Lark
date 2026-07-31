@@ -1,0 +1,17 @@
+[Unit]
+Description=ArXiv Today Lark command bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/arxiv-today/app
+EnvironmentFile=/opt/arxiv-today/app/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/arxiv-today/venv/bin/python /opt/arxiv-today/app/main.py bot
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

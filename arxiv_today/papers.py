@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
+import time
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -12,29 +14,60 @@ import arxiv
 
 from .models import Paper
 
+ARXIV_RETRY_DELAYS_SECONDS = (15.0, 30.0, 60.0, 120.0)
+
 
 def fetch_latest_papers(category: str, max_results: int = 100) -> list[Paper]:
-    client = arxiv.Client()
     search = arxiv.Search(
         query=f"cat:{category}",
         max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate,
     )
 
-    papers: list[Paper] = []
-    for result in client.results(search):
-        paper_id = result.get_short_id().split("v", maxsplit=1)[0]
-        papers.append(
-            {
-                "title": result.title,
-                "id": paper_id,
-                "abstract": result.summary.replace("\n", " "),
-                "authors": tuple(str(author) for author in result.authors),
-                "url": result.entry_id,
-                "published": result.published.date().isoformat(),
-            }
-        )
-    return papers
+    return [_paper_from_result(result) for result in _results_with_backoff(search)]
+
+
+def fetch_paper_by_id(paper_id: str) -> Paper:
+    """Fetch one arXiv paper, preserving its current version for caching."""
+    search = arxiv.Search(id_list=[paper_id], max_results=1)
+    result = next(iter(_results_with_backoff(search)), None)
+    if result is None:
+        raise LookupError(f"arXiv paper not found: {paper_id}")
+    return _paper_from_result(result)
+
+
+def _results_with_backoff(search: arxiv.Search) -> list[object]:
+    """Fetch one search, retrying rate limits and server errors exponentially."""
+    for attempt in range(len(ARXIV_RETRY_DELAYS_SECONDS) + 1):
+        try:
+            # Disable the dependency's fixed-delay retries so all retries use
+            # the explicit exponential schedule below.
+            return list(arxiv.Client(num_retries=0).results(search))
+        except arxiv.HTTPError as error:
+            retryable = error.status == 429 or 500 <= error.status < 600
+            if not retryable or attempt == len(ARXIV_RETRY_DELAYS_SECONDS):
+                raise
+            delay = ARXIV_RETRY_DELAYS_SECONDS[attempt]
+            print(
+                f"arXiv API returned HTTP {error.status}; "
+                f"retrying in {delay:g}s"
+            )
+            time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
+def _paper_from_result(result: object) -> Paper:
+    short_id = result.get_short_id()  # type: ignore[attr-defined]
+    paper_id = re.sub(r"v\d+$", "", short_id)
+    return {
+        "title": result.title,  # type: ignore[attr-defined]
+        "id": paper_id,
+        "abstract": result.summary.replace("\n", " "),  # type: ignore[attr-defined]
+        "authors": tuple(str(author) for author in result.authors),  # type: ignore[attr-defined]
+        "url": result.entry_id,  # type: ignore[attr-defined]
+        "published": result.published.date().isoformat(),  # type: ignore[attr-defined]
+        "version": short_id,
+    }
 
 
 def deduplicate_by_id(papers: Iterable[Paper]) -> list[Paper]:

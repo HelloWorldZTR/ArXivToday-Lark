@@ -5,3 +5,4 @@ pydantic
 openai
 tqdm
 pypdf
+lark-oapi

@@ -55,7 +55,7 @@
                     "elements": [
                         {
                             "tag": "markdown",
-                            "content": "${paper_list.counter}. Quality: ${paper_list.quality_score}",
+                            "content": "${paper_list.counter}. 推荐｜${paper_list.title}",
                             "text_align": "left",
                             "text_size": "heading",
                             "icon": {
@@ -66,7 +66,7 @@
                         },
                         {
                             "tag": "markdown",
-                            "content": "${paper_list.evaluation}",
+                            "content": "**作者**：${paper_list.authors}\n\n${paper_list.evaluation}",
                             "text_align": "left",
                             "text_size": "normal"
                         },
@@ -146,18 +146,15 @@
             "mockData": [
                 {
                     "counter": 1,
-                    "quality_score": "86",
+                    "title": "Paper Title",
+                    "authors": "Alice, Bob",
                     "evaluation": "该论文提出了具有较高潜在影响的新方法。"
                 },
                 {
                     "counter": 2,
-                    "quality_score": "评估失败",
-                    "evaluation": "质量评估失败，仅作为 related 论文展示。"
-                },
-                {
-                    "counter": 3,
-                    "quality_score": "",
-                    "evaluation": ""
+                    "title": "Another Paper",
+                    "authors": "Carol, Dave",
+                    "evaluation": "该论文研究机器人闭环控制中的长时程规划。"
                 }
             ],
             "structDescriptions": [
@@ -169,9 +166,15 @@
                 },
                 {
                     "type": "text",
-                    "name": "quality_score",
-                    "desc": "论文质量分数",
-                    "apiName": "var_7scnb2qnnj2"
+                    "name": "title",
+                    "desc": "推荐论文标题",
+                    "apiName": "var_recommendation_title"
+                },
+                {
+                    "type": "text",
+                    "name": "authors",
+                    "desc": "推荐论文作者",
+                    "apiName": "var_recommendation_authors"
                 },
                 {
                     "type": "text",
